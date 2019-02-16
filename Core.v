@@ -72,7 +72,7 @@ module Core # (
 		.MEM_WIDTH(MEM_WIDTH),
 		.MEM_SIZE(MEM_SIZE)
 	) _Memory (
-		.reset(reset),
+//		.reset(reset),
 		.mem_addr_instr(mem_addr_instr),
 		.mem_read_en_instr(mem_read_en_instr),
 		.mem_read_val_instr(mem_read_val_instr),

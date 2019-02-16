@@ -13,7 +13,7 @@ module Processor # (
 	input wire reset  // D9
 `ifdef FOR_SYNTH
 	,
-	output wire led_synth   // G6
+	output wire led_synth   // F6
 `endif
 `ifdef TEST_PROB
 	,
@@ -31,6 +31,7 @@ module Processor # (
 `ifdef FOR_SYNTH
 	wire for_synth[0:NUM_CORES-1];
 `endif
+
 	// for debug
 `ifdef TEST_PROB
 	wire [31:0] prob_PC[0:NUM_CORES-1];
@@ -51,57 +52,65 @@ module Processor # (
 `endif
 
 	// Clock Divider
+`ifdef FOR_SYNTH_CLK2HZ
 	reg clk2Hz = 0;
-	integer i = 0;
+	integer count = 0;
 
 	always @ (posedge clk)
-	begin
-		if (i >= 24999999)
+    begin
+		if (count >= 24999999)
 		begin
 			clk2Hz = ~clk2Hz;
-			i = 0;
+			count = 0;
 		end
 		else
 		begin
-			i = i + 1;
+			count = count + 1;
 		end
 	end
+`endif
 
 	genvar i;
 	generate
 		for (i = 0; i < NUM_CORES; i = i + 1)
 		begin
-	Core # (
-		.MEM_WIDTH(MEM_WIDTH),
-		.MEM_SIZE(MEM_SIZE),
-		.PC_START(PC_START_1),
-		.PC_END(PC_END_1)
-	) _Core (
-		.clk(clk2Hz),
-		.reset(reset)
+			Core # (
+				.MEM_WIDTH(MEM_WIDTH),
+				.MEM_SIZE(MEM_SIZE),
+				.PC_START(PC_START_1),
+				.PC_END(PC_END_1)
+			) _Core (
+`ifdef FOR_SYNTH_CLK2HZ
+				.clk(clk2Hz),
+`else
+				.clk(clk),
+`endif
+				.reset(reset)
 `ifdef FOR_SYNTH
-		,
-		.for_synth(for_synth[i])
+				,
+				.for_synth(for_synth[i])
 `endif
 `ifdef TEST_PROB
-		,
-		.prob_PC(prob_PC[i]),
-		.prob_Instruction(prob_Instruction[i]),
-		.prob_Read_data(prob_Read_data[i]),
-		.prob_Databus2(prob_Databus2[i]),
-		.prob_MemWrite(prob_MemWrite[i]),
-		.prob_MemRead(prob_MemRead[i]),
-		.prob_ALU_out(prob_ALU_out[i]),
-		.prob_mem_addr_instr(prob_mem_addr_instr[i]),
-		.prob_mem_read_en_instr(prob_mem_read_en_instr[i]),
-		.prob_mem_read_val_instr(prob_mem_read_val_instr[i]),
-		.prob_mem_addr_data(prob_mem_addr_data[i]),
-		.prob_mem_read_en_data(prob_mem_read_en_data[i]),
-		.prob_mem_write_en_data(prob_mem_write_en_data[i]),
-		.prob_mem_read_val_data(prob_mem_read_val_data[i]),
-		.prob_mem_write_val_data(prob_mem_write_val_data[i])
+				,
+				.prob_PC(prob_PC[i]),
+				.prob_Instruction(prob_Instruction[i]),
+				.prob_Read_data(prob_Read_data[i]),
+				.prob_Databus2(prob_Databus2[i]),
+				.prob_MemWrite(prob_MemWrite[i]),
+				.prob_MemRead(prob_MemRead[i]),
+				.prob_ALU_out(prob_ALU_out[i]),
+				.prob_mem_addr_instr(prob_mem_addr_instr[i]),
+				.prob_mem_read_en_instr(prob_mem_read_en_instr[i]),
+				.prob_mem_read_val_instr(prob_mem_read_val_instr[i]),
+				.prob_mem_addr_data(prob_mem_addr_data[i]),
+				.prob_mem_read_en_data(prob_mem_read_en_data[i]),
+				.prob_mem_write_en_data(prob_mem_write_en_data[i]),
+				.prob_mem_read_val_data(prob_mem_read_val_data[i]),
+				.prob_mem_write_val_data(prob_mem_write_val_data[i])
 `endif
-	);
+			);
+		end
+	endgenerate
 
 	// LED Output
 `ifdef FOR_SYNTH

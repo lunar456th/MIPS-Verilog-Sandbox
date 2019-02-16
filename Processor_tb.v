@@ -8,7 +8,9 @@ module Processor_tb (
 
 	reg clk;
 	reg reset;
+`ifdef FOR_SYNTH
 	wire led_synth;
+`endif
 	wire led_prob_3;
 	wire led_prob_2;
 	wire led_prob_1;
@@ -22,11 +24,10 @@ module Processor_tb (
 		.reset(reset)
 `ifdef FOR_SYNTH
 		,
-		.for_synth(for_synth)
+		.led_synth(led_synth)
 `endif
 `ifdef TEST_PROB
 		,
-		.led_synth(led_synth),
 		.led_prob_3(led_prob_3),
 		.led_prob_2(led_prob_2),
 		.led_prob_1(led_prob_1),
