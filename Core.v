@@ -16,8 +16,8 @@ module Core # (
 	parameter PC_START = 212,
 	parameter PC_END = 255
 	)	(
-	input wire clk,
-	input wire reset
+	input wire clk,   // E3
+	input wire reset  // D9
 `ifdef FOR_SYNTH
 	,
 	output wire for_synth
