@@ -1,0 +1,53 @@
+`ifndef __ALU_V__
+`define __ALU_V__
+
+module ALU (
+	input wire [31:0] in1,
+	input wire [31:0] in2,
+	input wire [4:0] ALUCtl,
+	input wire Sign,
+	output reg [31:0] out,
+	output reg zero
+	);
+
+	wire ss;
+	assign ss = {in1[31], in2[31]};
+
+	wire lt_31;
+	assign lt_31 = (in1[30:0] < in2[30:0]);
+
+	wire lt_signed;
+	assign lt_signed = (in1[31] ^ in2[31])?
+		((ss == 2'b01)? 0: 1): lt_31;
+
+	always @ (ALUCtl or lt_signed or in1 or in2)
+	begin
+		case (ALUCtl)
+			5'b00000: out <= in1 & in2;
+			5'b00001: out <= in1 | in2;
+			5'b00010: out <= in1 + in2;
+			5'b00110: out <= in1 - in2;
+			5'b00111: out <= {31'h00000000, Sign ? lt_signed : (in1 < in2)};
+			5'b01100: out <= ~(in1 | in2);
+			5'b01101: out <= in1 ^ in2;
+			5'b10000: out <= (in2 << in1[4:0]);
+			5'b11000: out <= (in2 >> in1[4:0]);
+			5'b11001: out <= ({{32{in2[31]}}, in2} >> in1[4:0]);
+			default: out <= 32'h00000000;
+		endcase
+	end
+
+	always @ (out)
+	begin
+		if (out == 0)
+		begin
+			zero <= 1'b1;
+		end
+		else
+		begin
+			zero <= 1'b0;
+		end
+	end
+endmodule
+
+`endif /*__ALU_V__*/

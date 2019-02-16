@@ -1,0 +1,6 @@
+_I, _D 만들었을 때는 잘 돌아갔음.
+
+MemorySelector 문제인 것을 알고
+
+본격적으로 MemorySelector를 고치기 직전에 저장해둔 코드.
+
