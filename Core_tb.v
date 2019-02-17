@@ -34,7 +34,7 @@ module Core_tb (
 		,
 		.for_synth(for_synth)
 `endif
-`ifdef TEST_PROB
+`ifdef FOR_SIM_PROB
 		,
 		.prob_PC(prob_PC),
 		.prob_Instruction(prob_Instruction),

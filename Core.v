@@ -22,7 +22,7 @@ module Core # (
 	,
 	output wire for_synth
 `endif
-`ifdef TEST_PROB
+`ifdef FOR_SIM_PROB
 	,
 	output wire [31:0] prob_PC,
 	output wire [31:0] prob_Instruction,
@@ -202,7 +202,7 @@ module Core # (
 	assign for_synth = mem_addr_instr | mem_read_en_instr | mem_read_val_instr | mem_addr_data | mem_read_en_data | mem_write_en_data | mem_read_val_data | mem_write_val_data;
 `endif
 
-`ifdef TEST_PROB
+`ifdef FOR_SIM_PROB
 	assign prob_PC = PC;
 	assign prob_Instruction = Instruction;
 	assign prob_Read_data = Read_data;

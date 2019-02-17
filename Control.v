@@ -70,13 +70,13 @@ module Control (
 					 (OpCode == OP_R && Funct == FUNCT_sra) ? 1'b1 : 1'b0;
 
 	assign ALUSrc2 = (OpCode == OP_lw) ? 1'b1 :
-				     (OpCode == OP_sw) ? 1'b1 :
-				     (OpCode == OP_lui) ? 1'b1 :
-				     (OpCode == OP_addi) ? 1'b1 :
-				     (OpCode == OP_addiu) ? 1'b1 :
-				     (OpCode == OP_andi) ? 1'b1 :
-				     (OpCode == OP_slti) ? 1'b1 :
-				     (OpCode == OP_sltiu) ? 1'b1 : 1'b0;
+					 (OpCode == OP_sw) ? 1'b1 :
+					 (OpCode == OP_lui) ? 1'b1 :
+					 (OpCode == OP_addi) ? 1'b1 :
+					 (OpCode == OP_addiu) ? 1'b1 :
+					 (OpCode == OP_andi) ? 1'b1 :
+					 (OpCode == OP_slti) ? 1'b1 :
+					 (OpCode == OP_sltiu) ? 1'b1 : 1'b0;
 
 	assign ExtOp = (OpCode == OP_andi) ? 1'b0 : 1'b1;
 
