@@ -18,54 +18,76 @@ module Control (
 	output wire [3:0] ALUOp
 	);
 
+	// opcode
+	localparam OP_R = 6'h00;
+	localparam OP_j = 6'h02;
+	localparam OP_jal = 6'h03;
+	localparam OP_beq = 6'h04;
+	localparam OP_addi = 6'h08;
+	localparam OP_addiu = 6'h09;
+	localparam OP_slti = 6'h0a;
+	localparam OP_sltiu = 6'h0b;
+	localparam OP_andi = 6'h0c;
+	localparam OP_lui = 6'h0f;
+	localparam OP_lw = 6'h23;
+	localparam OP_sw = 6'h2b;
+
+	// funct
+	localparam FUNCT_sll = 6'b000000;
+	localparam FUNCT_srl = 6'b000010;
+	localparam FUNCT_sra = 6'b000011;
+	localparam FUNCT_jr = 6'b001000;
+	localparam FUNCT_jalr = 6'b001001;
+
 	// Your code below
-	assign PCSrc[1:0]=(OpCode == 6'h02 || OpCode == 6'h03)?2'b01:
-					  ((OpCode == 6'h00 && Funct == 6'd8) || (OpCode == 6'h00 && Funct == 6'd9))?2'b10:2'b0;
+	assign PCSrc[1:0] = (OpCode == OP_j || OpCode == OP_jal) ? 2'b01 :
+						((OpCode == OP_R && Funct == FUNCT_jr) || (OpCode == OP_R && Funct == FUNCT_jalr)) ? 2'b10 : 2'b00;
 
-	assign Branch=(OpCode == 6'h04)?1'b1:1'b0;
+	assign Branch = (OpCode == OP_beq) ? 1'b1 : 1'b0;
 
-	assign RegWrite=(OpCode == 6'h2b || OpCode == 6'h04 ||
-					 OpCode == 6'h02 ||(OpCode == 6'h00 && Funct == 6'd8))?1'b0:1'b1;
+	assign RegWrite = (OpCode == OP_sw || OpCode == OP_beq ||
+					   OpCode == OP_j ||(OpCode == OP_R && Funct == FUNCT_jr)) ? 1'b0 : 1'b1;
 
-	assign RegDst=(OpCode == 6'h23 || OpCode == 6'h0f ||
-				   OpCode == 6'h08 || OpCode == 6'h09 ||
-				   OpCode == 6'h0c || OpCode == 6'h0a ||
-				   OpCode == 6'h0b)?2'b0:
-				  (OpCode == 6'h03)?2'b10:2'b01;
+	assign RegDst = (OpCode == OP_lw
+					|| OpCode == OP_lui
+					|| OpCode == OP_addi
+					|| OpCode == OP_addiu
+					|| OpCode == OP_andi
+					|| OpCode == OP_slti
+					|| OpCode == OP_sltiu) ? 2'b00 :
+					(OpCode == OP_jal) ? 2'b10 : 2'b01;
 
-	assign MemRead=(OpCode == 6'h23)?1'b1:1'b0;
+	assign MemRead = (OpCode == OP_lw) ? 1'b1 : 1'b0;
 
-	assign MemWrite=(OpCode == 6'h2b)?1'b1:1'b0;
+	assign MemWrite = (OpCode == OP_sw) ? 1'b1 : 1'b0;
 
-	assign MemtoReg=(OpCode == 6'h23)?2'b01:
-					(OpCode == 6'h03)?2'b10:
-					(OpCode == 6'h00 && Funct == 6'd9)?2'b10:2'b0;
+	assign MemtoReg = (OpCode == OP_lw) ? 2'b01 :
+					  (OpCode == OP_jal) ? 2'b10 :
+					  (OpCode == OP_R && Funct == FUNCT_jalr) ? 2'b10 : 2'b00;
 
-	assign ALUSrc1=(OpCode == 6'h00 && Funct == 6'd0)?1'b1:
-				   (OpCode == 6'h00 && Funct == 6'd2)?1'b1:
-				   (OpCode == 6'h00 && Funct == 6'd3)?1'b1:1'b0;
+	assign ALUSrc1 = (OpCode == OP_R && Funct == FUNCT_sll) ? 1'b1 :
+					 (OpCode == OP_R && Funct == FUNCT_srl) ? 1'b1 :
+					 (OpCode == OP_R && Funct == FUNCT_sra) ? 1'b1 : 1'b0;
 
-	assign ALUSrc2=(OpCode == 6'h23)?1'b1:
-				   (OpCode == 6'h2b)?1'b1:
-				   (OpCode == 6'h0f)?1'b1:
-				   (OpCode == 6'h08)?1'b1:
-				   (OpCode == 6'h09)?1'b1:
-				   (OpCode == 6'h0c)?1'b1:
-				   (OpCode == 6'h0a)?1'b1:
-				   (OpCode == 6'h0b)?1'b1:1'b0;
+	assign ALUSrc2 = (OpCode == OP_lw) ? 1'b1 :
+				     (OpCode == OP_sw) ? 1'b1 :
+				     (OpCode == OP_lui) ? 1'b1 :
+				     (OpCode == OP_addi) ? 1'b1 :
+				     (OpCode == OP_addiu) ? 1'b1 :
+				     (OpCode == OP_andi) ? 1'b1 :
+				     (OpCode == OP_slti) ? 1'b1 :
+				     (OpCode == OP_sltiu) ? 1'b1 : 1'b0;
 
-	assign ExtOp=(OpCode == 6'h0c)?1'b0:1'b1;
+	assign ExtOp = (OpCode == OP_andi) ? 1'b0 : 1'b1;
 
-	assign LuOp=(OpCode == 6'h0f)?1'b1:1'b0;
+	assign LuOp = (OpCode == OP_lui) ? 1'b1 : 1'b0;
 
 	// Your code above
 
-	assign ALUOp[2:0] =
-		(OpCode == 6'h00)? 3'b010:
-		(OpCode == 6'h04)? 3'b001:
-		(OpCode == 6'h0c)? 3'b100:
-		(OpCode == 6'h0a || OpCode == 6'h0b)? 3'b101:
-		3'b000;
+	assign ALUOp[2:0]  = (OpCode == OP_R) ? 3'b010 :
+						 (OpCode == OP_beq) ? 3'b001 :
+						 (OpCode == OP_andi) ? 3'b100 :
+						 (OpCode == OP_slti || OpCode == OP_sltiu) ? 3'b101 : 3'b000;
 
 	assign ALUOp[3] = OpCode[0];
 
