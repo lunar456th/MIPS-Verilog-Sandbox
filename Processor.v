@@ -10,7 +10,9 @@ module Processor # (
 	parameter NUM_CORES = 2
 	)	(
 	input wire clk,   // E3
-	input wire reset  // D9
+	input wire reset, // D9
+	output wire tx,   // D10
+	input wire rx     // A9
 `ifdef FOR_SYNTH
 	,
 	output wire led_synth   // F6
@@ -101,7 +103,9 @@ module Processor # (
 `else
 				.clk(clk),
 `endif
-				.reset(reset)
+				.reset(reset),
+				.tx(tx),
+				.rx(rx)
 `ifdef FOR_SYNTH
 				,
 				.for_synth(for_synth[i])

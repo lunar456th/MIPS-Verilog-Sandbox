@@ -8,16 +8,17 @@ module ALUControl (
 	output wire Sign
 	);
 
-	localparam aluAND = 5'b00000;
-	localparam aluOR  = 5'b00001;
-	localparam aluADD = 5'b00010;
-	localparam aluSUB = 5'b00110;
-	localparam aluSLT = 5'b00111;
-	localparam aluNOR = 5'b01100;
-	localparam aluXOR = 5'b01101;
 	localparam aluSLL = 5'b10000;
 	localparam aluSRL = 5'b11000;
 	localparam aluSRA = 5'b11001;
+	localparam aluADD = 5'b00010;
+	localparam aluSUB = 5'b00110;
+	localparam aluAND = 5'b00000;
+	localparam aluOR  = 5'b00001;
+	localparam aluXOR = 5'b01101;
+	localparam aluNOR = 5'b01100;
+	localparam aluSLT = 5'b00111;
+	localparam aluUART = 5'b11111; // to invalidate uart operations from ALU
 
 	assign Sign = (ALUOp[2:0] == 3'b010) ? ~Funct[0] : ~ALUOp[3];
 
@@ -39,6 +40,10 @@ module ALUControl (
 			6'b10_0111: aluFunct <= aluNOR;
 			6'b10_1010: aluFunct <= aluSLT;
 			6'b10_1011: aluFunct <= aluSLT;
+			6'b11_1001: aluFunct <= aluSLT;
+			6'b10_1011: aluFunct <= aluSLT;
+			6'b11_1001: aluFunct <= aluUART;
+			6'b11_1101: aluFunct <= aluUART;
 			default: aluFunct <= aluADD;
 		endcase
 	end

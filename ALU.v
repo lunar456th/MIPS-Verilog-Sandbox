@@ -34,6 +34,7 @@ module ALU (
 			5'b10000: out <= (in2 << in1[4:0]);
 			5'b11000: out <= (in2 >> in1[4:0]);
 			5'b11001: out <= ({{32{in2[31]}}, in2} >> in1[4:0]);
+			5'b11111: out <= 32'h00000000;
 			default: out <= 32'h00000000;
 		endcase
 

@@ -10,6 +10,8 @@ module Processor_tb (
 
 	reg clk;
 	reg reset;
+	reg rx;
+	wire tx;
 `ifdef FOR_SYNTH
 	wire led_synth;
 `endif
@@ -43,7 +45,9 @@ module Processor_tb (
 		.NUM_CORES(NUM_CORES)
 	) _Processor (
 		.clk(clk),
-		.reset(reset)
+		.reset(reset),
+		.tx(tx),
+		.rx(rx)
 `ifdef FOR_SYNTH
 		,
 		.led_synth(led_synth)
@@ -79,6 +83,7 @@ module Processor_tb (
 	begin
 		reset <= 1'b0;
 		clk <= 1'b0;
+		rx <= 1'b0;
 		forever
 		begin
 			#10 clk = ~clk;

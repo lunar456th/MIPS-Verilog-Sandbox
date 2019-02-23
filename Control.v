@@ -38,15 +38,20 @@ module Control (
 	localparam FUNCT_sra = 6'b000011;
 	localparam FUNCT_jr = 6'b001000;
 	localparam FUNCT_jalr = 6'b001001;
+	localparam FUNCT_uart_tx = 6'b111001;
+	localparam FUNCT_uart_rx = 6'b111101;
 
 	// Your code below
 	assign PCSrc[1:0] = (OpCode == OP_j || OpCode == OP_jal) ? 2'b01 :
-						((OpCode == OP_R && Funct == FUNCT_jr) || (OpCode == OP_R && Funct == FUNCT_jalr)) ? 2'b10 : 2'b00;
+						(OpCode == OP_R && (Funct == FUNCT_jr || Funct == FUNCT_jalr)) ? 2'b10 : 2'b00;
 
 	assign Branch = (OpCode == OP_beq) ? 1'b1 : 1'b0;
 
-	assign RegWrite = (OpCode == OP_sw || OpCode == OP_beq ||
-					   OpCode == OP_j ||(OpCode == OP_R && Funct == FUNCT_jr)) ? 1'b0 : 1'b1;
+	assign RegWrite = (OpCode == OP_sw
+					|| OpCode == OP_beq
+					|| OpCode == OP_j
+					|| (OpCode == OP_R && Funct == FUNCT_jr)
+					|| (OpCode == OP_R && Funct == FUNCT_uart_tx)) ? 1'b0 : 1'b1;
 
 	assign RegDst = (OpCode == OP_lw
 					|| OpCode == OP_lui
@@ -63,20 +68,20 @@ module Control (
 
 	assign MemtoReg = (OpCode == OP_lw) ? 2'b01 :
 					  (OpCode == OP_jal) ? 2'b10 :
-					  (OpCode == OP_R && Funct == FUNCT_jalr) ? 2'b10 : 2'b00;
+					  (OpCode == OP_R && Funct == FUNCT_jalr) ? 2'b10 :
+					  (OpCode == OP_R && Funct == FUNCT_uart_rx) ? 2'b11 :
+					  2'b00;
 
-	assign ALUSrc1 = (OpCode == OP_R && Funct == FUNCT_sll) ? 1'b1 :
-					 (OpCode == OP_R && Funct == FUNCT_srl) ? 1'b1 :
-					 (OpCode == OP_R && Funct == FUNCT_sra) ? 1'b1 : 1'b0;
+	assign ALUSrc1 = (OpCode == OP_R && (Funct == FUNCT_sll || Funct == FUNCT_srl || Funct == FUNCT_sra)) ? 1'b1 : 1'b0;
 
-	assign ALUSrc2 = (OpCode == OP_lw) ? 1'b1 :
-					 (OpCode == OP_sw) ? 1'b1 :
-					 (OpCode == OP_lui) ? 1'b1 :
-					 (OpCode == OP_addi) ? 1'b1 :
-					 (OpCode == OP_addiu) ? 1'b1 :
-					 (OpCode == OP_andi) ? 1'b1 :
-					 (OpCode == OP_slti) ? 1'b1 :
-					 (OpCode == OP_sltiu) ? 1'b1 : 1'b0;
+	assign ALUSrc2 = (OpCode == OP_lw
+					|| OpCode == OP_sw
+					|| OpCode == OP_lui
+					|| OpCode == OP_addi
+					|| OpCode == OP_addiu
+					|| OpCode == OP_andi
+					|| OpCode == OP_slti
+					|| OpCode == OP_sltiu) ? 1'b1 : 1'b0;
 
 	assign ExtOp = (OpCode == OP_andi) ? 1'b0 : 1'b1;
 

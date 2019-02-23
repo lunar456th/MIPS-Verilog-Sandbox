@@ -8,6 +8,8 @@ module Core_tb (
 
 	reg clk;
 	reg reset;
+	reg rx;
+	wire tx;
 	wire [31:0] prob_PC;
 	wire [31:0] prob_Instruction;
 	wire [31:0] prob_Read_data;
@@ -29,7 +31,9 @@ module Core_tb (
 		.MEM_SIZE(256)
 	) _Core (
 		.clk(clk),
-		.reset(reset)
+		.reset(reset),
+		.tx(tx),
+		.rx(rx)
 `ifdef FOR_SYNTH
 		,
 		.for_synth(for_synth)
@@ -58,6 +62,7 @@ module Core_tb (
 	begin
 		reset <= 1'b0;
 		clk <= 1'b0;
+		rx <= 1'b0;
 		forever
 		begin
 			#10 clk = ~clk;

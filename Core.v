@@ -9,6 +9,7 @@
 `include "Control.v"
 `include "ALU.v"
 `include "ALUControl.v"
+`include "UART_Controller.v"
 
 module Core # (
 	parameter MEM_WIDTH = 32,
@@ -17,7 +18,9 @@ module Core # (
 	parameter PC_END = 255
 	)	(
 	input wire clk,   // E3
-	input wire reset  // D9
+	input wire reset, // D9
+	output wire tx,   // D10
+	input wire rx     // A9
 `ifdef FOR_SYNTH
 	,
 	output wire for_synth
@@ -46,15 +49,20 @@ module Core # (
 	reg [31:0] PC = PC_START;
 	wire [31:0] PC_next;
 	wire [31:0] PC_plus_1;
+	wire stall;
+	wire uart_stall;
 	always @ (posedge clk or posedge reset)
 	begin
 		if (reset)
 		begin
 			PC <= PC_START;
 		end
-		else if (PC < PC_END)
+		else
 		begin
-			PC <= PC_next;
+			if (!stall && PC < PC_END)
+			begin
+				PC <= PC_next;
+			end
 		end
 	end
 	assign PC_plus_1 = PC + 32'd1;
@@ -129,7 +137,7 @@ module Core # (
 	// RegisterFile
 	wire [31:0] Databus1, Databus2, Databus3;
 	wire [4:0] Write_register;
-	assign Write_register = (RegDst == 2'b00) ? Instruction[20:16] : (RegDst == 2'b01 ? Instruction[15:11] : 5'b11111);
+	assign Write_register = (RegDst == 2'b00) ? Instruction[20:16] : (RegDst == 2'b01) ? Instruction[15:11] : 5'b11111;
 	RegisterFile _RegisterFile (
 		.reset(reset),
 		.clk(clk),
@@ -147,8 +155,8 @@ module Core # (
 	wire [31:0] LU_out;
 	wire [4:0] ALUCtl;
 	wire Sign;
-	assign Ext_out = {ExtOp ? {16{Instruction[15]}} : 16'h0000, Instruction[15:0]};
-	assign LU_out = LuOp ? {Instruction[15:0], 16'h0000} : Ext_out;
+	assign Ext_out = {ExtOp ? { 16{Instruction[15]} } : 16'h0000, Instruction[15:0]};
+	assign LU_out = LuOp ? { Instruction[15:0], 16'h0000 } : Ext_out;
 	ALUControl _ALUControl (
 		.ALUOp(ALUOp),
 		.Funct(Instruction[5:0]),
@@ -189,14 +197,38 @@ module Core # (
 		.mem_read_val(mem_read_val_data),
 		.mem_write_val(mem_write_val_data)
 	);
+	
+	wire [31:0] data_uart_send;
+	wire [31:0] data_uart_recv;
+	wire uart_tx_en;
+	wire uart_rx_en;
+	wire tx_response;
+	wire rx_response;
+	assign data_uart_send = ALU_in1;
+	assign uart_tx_en = (Instruction[31:26] == 6'b000000 && Instruction[5:0] == 6'b111001) ? 1'b1 : 1'b0;
+	assign uart_rx_en = (Instruction[31:26] == 6'b000000 && Instruction[5:0] == 6'b111101) ? 1'b1 : 1'b0;
+	UART_Controller _UART_Controller (
+		.clk(clk),
+		.reset(reset),
+		.tx(tx),
+		.rx(rx),
+		.tx_enable(uart_tx_en),
+		.rx_enable(uart_rx_en),
+		.data_uart_send(data_uart_send),
+		.data_uart_recv(data_uart_recv),
+		.tx_response(tx_response),
+		.rx_response(rx_response)
+	);
 
 	// Branch
 	wire [31:0] Jump_target;
 	wire [31:0] Branch_target;
-	assign Databus3 = MemtoReg == 2'b00 ? ALU_out : (MemtoReg == 2'b01 ? Read_data : PC_plus_1);
-	assign Jump_target = {PC_plus_1[31:28], Instruction[25:0], 2'b00};
-	assign Branch_target = Branch & Zero ? PC_plus_1 + {LU_out[29:0], 2'b00} : PC_plus_1;
-	assign PC_next = PCSrc == 2'b00 ? Branch_target : (PCSrc == 2'b01 ? Jump_target : Databus1);
+	assign Databus3 = (MemtoReg == 2'b00) ? ALU_out : (MemtoReg == 2'b01) ? Read_data : (MemtoReg == 2'b11) ? data_uart_recv : PC_plus_1;
+	assign Jump_target = { PC_plus_1[31:28], Instruction[25:0], 2'b00 };
+	assign Branch_target = (Branch & Zero) ? PC_plus_1 + { LU_out[29:0], 2'b00 } : PC_plus_1;
+	assign PC_next = (PCSrc == 2'b00) ? Branch_target : (PCSrc == 2'b01) ? Jump_target : Databus1;
+	assign stall = uart_stall; // for adding new kinds of stalls
+	assign uart_stall = (Instruction[31:26] == 6'b000000 && (Instruction[5:0] == 6'b111001 || Instruction[5:0] == 6'b111101)) && (!tx_response && !rx_response);
 
 `ifdef FOR_SYNTH
 	assign for_synth = mem_addr_instr | mem_read_en_instr | mem_read_val_instr | mem_addr_data | mem_read_en_data | mem_write_en_data | mem_read_val_data | mem_write_val_data;
