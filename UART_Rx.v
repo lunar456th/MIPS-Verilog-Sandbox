@@ -11,8 +11,15 @@ module UART_Rx # (
 	input wire reset,
 	input wire rx,
 	output wire [DATA_BITS-1:0] rx_data,
-	input wire enable,
-	output reg response
+	input wire rx_en,
+	output reg rx_res
+`ifdef FOR_SIM_UART
+	,
+	output wire [DATA_BITS-1:0] prob_rx_buf,
+	output wire [$clog2(DATA_BITS):0] prob_rx_bit_count,
+	output wire [$clog2(CLKS_FOR_SEND)-1:0] prob_rx_clk_count,
+	output wire prob_rx_state
+`endif
 	);
 
 	localparam CLKS_FOR_SEND = CLK_FREQ / BAUD_RATE;
@@ -31,7 +38,7 @@ module UART_Rx # (
 		rx_bit_count <= 0;
 		rx_clk_count <= 0;
 		rx_state <= 0;
-		response <= 0;
+		rx_res <= 0;
 	end
 
 	always @ (posedge clk)
@@ -45,8 +52,8 @@ module UART_Rx # (
 		end
 		else
 		begin
-			response = 0;
-			if (enable)
+			rx_res = 0;
+			if (rx_en)
 			begin
 				if (rx_state == 0 && rx == 0)
 				begin
@@ -73,7 +80,7 @@ module UART_Rx # (
 						rx_clk_count = 0;
 						rx_bit_count = 0;
 						data = rx_buf;
-						response = 1;
+						rx_res = 1;
 					end
 					else if(rx_bit_count > DATA_BITS && rx_clk_count == CLKS_FOR_SEND && rx != 1)
 					begin
@@ -89,6 +96,13 @@ module UART_Rx # (
 	end
 
 	assign rx_data = data;
+
+`ifdef FOR_SIM_UART
+	assign prob_rx_buf = rx_buf;
+	assign prob_rx_bit_count = rx_bit_count;
+	assign prob_rx_clk_count = rx_clk_count;
+	assign prob_rx_state = rx_state;
+`endif
 
 endmodule
 

@@ -21,7 +21,7 @@ module Processor_tb (
 	wire led_prob_1;
 	wire led_prob_0;
 `endif
-`ifdef FOR_SIM_PROB
+`ifdef FOR_SIM_MEM
 	wire [31:0] prob_PC;
 	wire [31:0] prob_Instruction;
 	wire [31:0] prob_Read_data;
@@ -59,7 +59,7 @@ module Processor_tb (
 		.led_prob_1(led_prob_1),
 		.led_prob_0(led_prob_0)
 `endif
-`ifdef FOR_SIM_PROB
+`ifdef FOR_SIM_MEM
 		,
 		.prob_PC(prob_PC),
 		.prob_Instruction(prob_Instruction),

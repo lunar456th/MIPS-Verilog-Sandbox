@@ -9,23 +9,46 @@ module UART_Controller # (
 	parameter BAUD_RATE = 115200,
 	parameter DATA_BITS = 8,
 	parameter STOP_BITS = 1
+`ifdef FOR_SIM_UART
+	,
+	parameter CLKS_FOR_SEND = CLK_FREQ / BAUD_RATE,
+	parameter CLKS_FOR_RECV = CLKS_FOR_SEND / 2
+`endif
 	)  (
 	input wire clk,
 	input wire reset,
 	output wire tx,
 	input wire rx,
-	input wire tx_enable,
-	input wire rx_enable,
-	input wire [31:0] data_uart_send,
-	output wire [31:0] data_uart_recv,
-	output wire tx_response,
-	output wire rx_response
+	input wire tx_en,
+	input wire rx_en,
+	input wire [31:0] uart_data_send,
+	output wire [31:0] uart_data_recv,
+	output wire tx_res,
+	output wire rx_res
+`ifdef FOR_SIM_UART
+	// controller
+	,
+	output wire [7:0] prob_tx_data,
+	output wire [7:0] prob_rx_data
+	// tx
+	,
+	output wire [DATA_BITS-1:0] prob_tx_buf,
+	output wire [$clog2(DATA_BITS):0] prob_tx_bit_count,
+	output wire [$clog2(CLKS_FOR_SEND)-1:0] prob_tx_clk_count,
+	output wire prob_tx_bit
+	// rx
+	,
+	output wire [DATA_BITS-1:0] prob_rx_buf,
+	output wire [$clog2(DATA_BITS):0] prob_rx_bit_count,
+	output wire [$clog2(CLKS_FOR_SEND)-1:0] prob_rx_clk_count,
+	output wire prob_rx_state
+`endif
 	);
 
 	wire [7:0] tx_data;
 	wire [7:0] rx_data;
-//	wire tx_response;
-//	wire rx_response;
+//	wire tx_res;
+//	wire rx_res;
 
 	UART_Tx # (
 		.CLK_FREQ(CLK_FREQ),
@@ -37,8 +60,15 @@ module UART_Controller # (
 		.reset(reset),
 		.tx(tx),
 		.tx_data(tx_data),
-		.enable(tx_enable),
-		.response(tx_response)
+		.tx_en(tx_en),
+		.tx_res(tx_res)
+`ifdef FOR_SIM_UART
+	,
+		.prob_tx_buf(prob_tx_buf),
+		.prob_tx_bit_count(prob_tx_bit_count),
+		.prob_tx_clk_count(prob_tx_clk_count),
+		.prob_tx_bit(prob_tx_bit)
+`endif
 	);
 
 	UART_Rx # (
@@ -51,16 +81,28 @@ module UART_Controller # (
 		.reset(reset),
 		.rx(rx),
 		.rx_data(rx_data),
-		.enable(rx_enable),
-		.response(rx_response)
+		.rx_en(rx_en),
+		.rx_res(rx_res)
+`ifdef FOR_SIM_UART
+		,
+		.prob_rx_buf(prob_rx_buf),
+		.prob_rx_bit_count(prob_rx_bit_count),
+		.prob_rx_clk_count(prob_rx_clk_count),
+		.prob_rx_state(prob_rx_state)
+`endif
 	);
 
 	// setting for loopback
 	// assign tx_data = rx_data;
-	// assign tx_enable = rx_response;
+	// assign tx_en = rx_res;
 
-	assign tx_data = data_uart_send[7:0];
-	assign data_uart_recv = { 24'd0, rx_data };
+	assign tx_data = uart_data_send[7:0];
+	assign uart_data_recv = { 24'd0, rx_data };
+
+`ifdef FOR_SIM_UART
+	assign prob_tx_data = tx_data;
+	assign prob_rx_data = rx_data;
+`endif
 
 endmodule
 

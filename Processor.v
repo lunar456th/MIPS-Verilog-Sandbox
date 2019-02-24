@@ -24,7 +24,7 @@ module Processor # (
 	output wire led_prob_1, // J5
 	output wire led_prob_0  // H5
 `endif
-`ifdef FOR_SIM_PROB
+`ifdef FOR_SIM_MEM
 	,
 	output wire [31:0] prob_PC,
 	output wire [31:0] prob_Instruction,
@@ -110,7 +110,7 @@ module Processor # (
 				,
 				.for_synth(for_synth[i])
 `endif
-`ifdef FOR_SIM_PROB
+`ifdef FOR_SIM_MEM
 				,
 				.prob_PC(prob_PC_core[i]),
 				.prob_Instruction(prob_Instruction_core[i]),
@@ -142,7 +142,7 @@ module Processor # (
 	assign led_prob_1 = prob_mem_read_val_data_core[0][1];
 	assign led_prob_0 = prob_mem_read_val_data_core[0][0];
 `endif
-`ifdef FOR_SIM_PROB
+`ifdef FOR_SIM_MEM
 	integer sel = 1;
 	assign prob_PC = prob_PC_core[sel];
 	assign prob_Instruction = prob_Instruction_core[sel];

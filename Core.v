@@ -14,8 +14,18 @@
 module Core # (
 	parameter MEM_WIDTH = 32,
 	parameter MEM_SIZE = 256,
-	parameter PC_START = 212,
+	parameter PC_START = 124,
 	parameter PC_END = 255
+	,
+	parameter CLK_FREQ = 100000000,
+	parameter BAUD_RATE = 115200,
+	parameter DATA_BITS = 8,
+	parameter STOP_BITS = 1
+`ifdef FOR_SIM_UART
+	,
+	parameter CLKS_FOR_SEND = CLK_FREQ / BAUD_RATE,
+	parameter CLKS_FOR_RECV = CLKS_FOR_SEND / 2
+`endif
 	)	(
 	input wire clk,   // E3
 	input wire reset, // D9
@@ -25,7 +35,7 @@ module Core # (
 	,
 	output wire for_synth
 `endif
-`ifdef FOR_SIM_PROB
+`ifdef FOR_SIM_MEM
 	,
 	output wire [31:0] prob_PC,
 	output wire [31:0] prob_Instruction,
@@ -42,6 +52,37 @@ module Core # (
 	output wire prob_mem_write_en_data,
 	output wire [31:0] prob_mem_read_val_data,
 	output wire [31:0] prob_mem_write_val_data
+`endif
+`ifdef FOR_SIM_UART
+	,
+	output wire [31:0] prob_PC,
+	output wire [31:0] prob_Instruction,
+	output wire [31:0] prob_Databus1,
+	output wire [1:0] prob_MemtoReg,
+	output wire prob_RegWrite,
+	output wire [31:0] prob_Databus3,
+	output wire [31:0] prob_uart_data_send,
+	output wire [31:0] prob_uart_data_recv,
+	output wire prob_uart_stall,
+	output wire prob_stall,
+	output wire prob_uart_tx_en,
+	output wire prob_uart_rx_en,
+	output wire prob_uart_tx_res,
+	output wire prob_uart_rx_res,
+	output wire [4:0] prob_Write_register
+	,
+	output wire [7:0] prob_tx_data,
+	output wire [7:0] prob_rx_data
+	,
+	output wire [DATA_BITS-1:0] prob_tx_buf,
+	output wire [$clog2(DATA_BITS):0] prob_tx_bit_count,
+	output wire [$clog2(CLKS_FOR_SEND)-1:0] prob_tx_clk_count,
+	output wire prob_tx_bit
+	,
+	output wire [DATA_BITS-1:0] prob_rx_buf,
+	output wire [$clog2(DATA_BITS):0] prob_rx_bit_count,
+	output wire [$clog2(CLKS_FOR_SEND)-1:0] prob_rx_clk_count,
+	output wire prob_rx_state
 `endif
 	);
 
@@ -197,44 +238,67 @@ module Core # (
 		.mem_read_val(mem_read_val_data),
 		.mem_write_val(mem_write_val_data)
 	);
-	
-	wire [31:0] data_uart_send;
-	wire [31:0] data_uart_recv;
+
+	wire [31:0] uart_data_send;
+	wire [31:0] uart_data_recv;
 	wire uart_tx_en;
 	wire uart_rx_en;
-	wire tx_response;
-	wire rx_response;
-	assign data_uart_send = ALU_in1;
+	wire uart_tx_res;
+	wire uart_rx_res;
+	assign uart_data_send = ALU_in1;
 	assign uart_tx_en = (Instruction[31:26] == 6'b000000 && Instruction[5:0] == 6'b111001) ? 1'b1 : 1'b0;
 	assign uart_rx_en = (Instruction[31:26] == 6'b000000 && Instruction[5:0] == 6'b111101) ? 1'b1 : 1'b0;
-	UART_Controller _UART_Controller (
+	UART_Controller # (
+		.CLK_FREQ(CLK_FREQ),
+		.BAUD_RATE(BAUD_RATE),
+		.DATA_BITS(DATA_BITS),
+		.STOP_BITS(STOP_BITS)
+`ifdef FOR_SIM_UART
+		,
+		.CLKS_FOR_SEND(CLKS_FOR_SEND),
+		.CLKS_FOR_RECV(CLKS_FOR_RECV)
+`endif
+	) _UART_Controller (
 		.clk(clk),
 		.reset(reset),
 		.tx(tx),
 		.rx(rx),
-		.tx_enable(uart_tx_en),
-		.rx_enable(uart_rx_en),
-		.data_uart_send(data_uart_send),
-		.data_uart_recv(data_uart_recv),
-		.tx_response(tx_response),
-		.rx_response(rx_response)
+		.tx_en(uart_tx_en),
+		.rx_en(uart_rx_en),
+		.uart_data_send(uart_data_send),
+		.uart_data_recv(uart_data_recv),
+		.tx_res(uart_tx_res),
+		.rx_res(uart_rx_res)
+`ifdef FOR_SIM_UART
+		,
+		.prob_tx_data(prob_tx_data),
+		.prob_rx_data(prob_rx_data),
+		.prob_tx_buf(prob_tx_buf),
+		.prob_tx_bit_count(prob_tx_bit_count),
+		.prob_tx_clk_count(prob_tx_clk_count),
+		.prob_tx_bit(prob_tx_bit),
+		.prob_rx_buf(prob_rx_buf),
+		.prob_rx_bit_count(prob_rx_bit_count),
+		.prob_rx_clk_count(prob_rx_clk_count),
+		.prob_rx_state(prob_rx_state)
+`endif
 	);
 
 	// Branch
 	wire [31:0] Jump_target;
 	wire [31:0] Branch_target;
-	assign Databus3 = (MemtoReg == 2'b00) ? ALU_out : (MemtoReg == 2'b01) ? Read_data : (MemtoReg == 2'b11) ? data_uart_recv : PC_plus_1;
+	assign Databus3 = (MemtoReg == 2'b00) ? ALU_out : (MemtoReg == 2'b01) ? Read_data : (MemtoReg == 2'b11) ? uart_data_recv : PC_plus_1;
 	assign Jump_target = { PC_plus_1[31:28], Instruction[25:0], 2'b00 };
 	assign Branch_target = (Branch & Zero) ? PC_plus_1 + { LU_out[29:0], 2'b00 } : PC_plus_1;
 	assign PC_next = (PCSrc == 2'b00) ? Branch_target : (PCSrc == 2'b01) ? Jump_target : Databus1;
 	assign stall = uart_stall; // for adding new kinds of stalls
-	assign uart_stall = (Instruction[31:26] == 6'b000000 && (Instruction[5:0] == 6'b111001 || Instruction[5:0] == 6'b111101)) && (!tx_response && !rx_response);
+	assign uart_stall = (Instruction[31:26] == 6'b000000 && (Instruction[5:0] == 6'b111001 || Instruction[5:0] == 6'b111101)) && (!uart_tx_res && !uart_rx_res);
 
 `ifdef FOR_SYNTH
 	assign for_synth = mem_addr_instr | mem_read_en_instr | mem_read_val_instr | mem_addr_data | mem_read_en_data | mem_write_en_data | mem_read_val_data | mem_write_val_data;
 `endif
 
-`ifdef FOR_SIM_PROB
+`ifdef FOR_SIM_MEM
 	assign prob_PC = PC;
 	assign prob_Instruction = Instruction;
 	assign prob_Read_data = Read_data;
@@ -250,6 +314,24 @@ module Core # (
 	assign prob_mem_write_en_data = mem_write_en_data;
 	assign prob_mem_read_val_data = mem_read_val_data;
 	assign prob_mem_write_val_data = mem_write_val_data;
+`endif
+
+`ifdef FOR_SIM_UART
+	assign prob_PC = PC;
+	assign prob_Instruction = Instruction;
+	assign prob_Databus1 = Databus1;
+	assign prob_MemtoReg = MemtoReg;
+	assign prob_RegWrite = RegWrite;
+	assign prob_Databus3 = Databus3;
+	assign prob_uart_data_send = uart_data_send;
+	assign prob_uart_data_recv = uart_data_recv;
+	assign prob_uart_stall = uart_stall;
+	assign prob_stall = stall;
+	assign prob_uart_tx_en = uart_tx_en;
+	assign prob_uart_rx_en = uart_rx_en;
+	assign prob_uart_tx_res = uart_tx_res;
+	assign prob_uart_rx_res = uart_rx_res;
+	assign prob_Write_register = Write_register;
 `endif
 
 endmodule
